@@ -162,7 +162,7 @@
 - Dockerfileから、イメージを作成するコマンド
 
   - 例）  
-    Dockerfile（[/assets/Dockerfile/sample01/Dockerfile](/assets/Dockerfile/sample01/Dockerfile)）
+    Dockerfile（[/assets/Dockerfile/sample/Dockerfile](/assets/Dockerfile/sample/Dockerfile)）
     ```docker
     FROM centos:7
     RUN yum update -y
@@ -172,7 +172,7 @@
     ```sh
 
     # dockerイメージを作成
-    docker build assets/Dockerfile/sample01/Dockerfile
+    docker build assets/Dockerfile/sample/Dockerfile
     [+] Building 0.9s (6/6) FINISHED   0.0s
     # 中略
     => writing image sha256:e2a7d731e2c63f7a8aa18d197da2ce573f9762195474e8fa5b7947b5bbf90d7a  0.0s
@@ -386,16 +386,51 @@
   - 文字の区切りは、シングルクォーテーションではなく、ダブルクォーテーションで区切ること。
 
   - 演習）  
-    Dockerfile（[assets/Dockerfile/sample02/Dockerfile](assets/Dockerfile/sample02/Dockerfile)）
+    Dockerfile（[assets/Dockerfile/sample-run/Dockerfile](assets/Dockerfile/sample-run/Dockerfile)）
     ```docker
     FROM ubuntu:20.04
     RUN apt-get update -y && \
         apt-get install -y nginx
     CMD ["nginx", "-g", "daemon off;"]
     ```
-    command
+    command(build)
+    ```sh
+    docker build -t dockerfile-run-nginx ./Dockerfile/sample-run/
+    ```
+    command(run)
     ```sh
     # -d オプションで、バックエンド起動
     docker run -d -p 8081:80 --name dockerfile-run-nginx dockerfile-run-nginx
     ```
 
+    ブラウザで、8081ポートへアクセスすると、nginxのトップページが表示される。
+    ![docker-run](./assets/img/docker-run.jpg)
+
+### COPYとADD
+- コンテナにホストのファイルをコピーする。
+  - ADDの方が機能が豊富で、tar等の解凍も可能。だが、ベストプラクティスとしてはCOPYを推奨（必要がないなら、シンプルな命令を使うのがポリシーらしい）
+  - 演習）  
+    Dockerfile（[assets/Dockerfile/sample-copy/Dockerfile](assets/Dockerfile/sample-copy/Dockerfile)）
+    ```docker
+    FROM ubuntu:20.04
+    RUN apt-get update -y && \
+        apt-get install -y nginx
+    COPY index.html /var/www/html
+    CMD ["nginx", "-g", "daemon off;"]
+    ```
+    index.html
+    ```html
+    <h1>Hello Dockerfile!</h1>
+    ```
+    command(build)
+    ```sh
+    docker build -t dockerfile-copy-nginx ./Dockerfile/sample-copy/
+    ```
+    command(run)
+    ```sh
+    # -d オプションで、バックエンド起動
+    docker run -d -p 8082:80 --name docker-copy-nginx dockerfile-copy-nginx
+    ```
+
+    ブラウザで、8082ポートへアクセスすると、copyしたindex.htmlが表示される。
+    ![docker-copy](./assets/img/docker-copy.jpg)
