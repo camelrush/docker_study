@@ -434,3 +434,127 @@
 
     ブラウザで、8082ポートへアクセスすると、copyしたindex.htmlが表示される。
     ![docker-copy](./assets/img/docker-copy.jpg)
+
+### ENV
+- 環境変数を設定する（DBのユーザ名,開発環境情報など）
+  - 演習）  
+    Dockerfile（[assets/Dockerfile/sample-env/Dockerfile](assets/Dockerfile/sample-env/Dockerfile)）
+    ```docker
+    FROM ubuntu:20.04
+    RUN apt-get update -y && \
+        apt-get install -y nginx
+    ENV TESTENV="Takada"
+
+    # よく使うのが、locat,production
+    # ENV APP_ENV="production"     # or development, staging
+
+    CMD ["nginx", "-g", "daemon off;"]
+    ```
+    command(build)
+    ```sh
+    docker build -t dockerfile-env-nginx ./Dockerfile/sample-env/
+    ```
+    command(run)
+    ```sh
+    # -d オプションで、バックエンド起動
+    docker run -d -p 8083:80 --name docker-env-nginx dockerfile-env-nginx
+    ```
+
+    docker inspectコマンドで実行されたコンテナの情報を確認すると、"Env"に値が設定されていることを確認できる。
+    ```sh
+    docker inspect docker-env-nginx 
+
+    [
+        {
+                （ 中略 ）
+
+            "Config": {
+
+                （ 中略 ）
+
+                "Env": [
+                    "TESTENV=Takada"
+                ],
+
+            },
+        }
+    ]      
+    ```
+
+### mariadbの構築実践
+- mariadbのdockerイメージを使用して、db環境を構築する。
+
+  - 演習）
+
+    Dockerfile（[assets/Dockerfile/sample-mariadb/Dockerfile](assets/Dockerfile/sample-mariadb/Dockerfile)）
+    ```docker
+    FROM mariadb:10.4
+    RUN apt-get update -y
+    COPY my.conf /etc/mysql/conf.d
+    COPY create-table.sql /docker-entrypoint-initdb.d
+    ENV MYSQL_USER=root
+    ENV MYSQL_DATABASE=docker
+    ENV MYSQL_ROOT_PASSWORD=root
+    ```
+
+    command(build)
+    ```sh
+    docker build -t mymariadb ./assets/Dockerfile/sample-mariadb 
+    ```
+
+    command(run)
+    ```sh
+    # -d オプションで、バックエンド起動
+    docker run -d --name mymariadb mymariadb
+    ```
+
+    bashでコンテナに入った後、mariadbにログインしてdockerデータベース内にpersonsテーブルがあることを確認する。
+
+    1.コンテナに入る
+    ```sh
+    docker exec -it mymariadb /bin/bash
+    ```
+
+    2.mariadbにログイン
+    ```sh
+    root@689436b22bdf:/# mysql -u root -p
+    Enter password: (root)
+
+    Welcome to the MariaDB monitor.  Commands end with ; or \g.
+    Your MariaDB connection id is 8
+    Server version: 10.4.27-MariaDB-1:10.4.27+maria~ubu2004 mariadb.org binary distribution
+
+    Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+    Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+    ```
+
+    3.mariadbでDB、テーブルを参照する。
+    ```sql
+    MariaDB [(none)]> show databases;
+    +--------------------+
+    | Database           |
+    +--------------------+
+    | docker             |
+    | information_schema |
+    | mysql              |
+    | performance_schema |
+    +--------------------+
+    4 rows in set (0.001 sec)
+
+    MariaDB [(none)]> use docker
+    Reading table information for completion of table and column names
+    You can turn off this feature to get a quicker startup with -A
+
+    Database changed
+    MariaDB [docker]> show tables;
+    +------------------+
+    | Tables_in_docker |
+    +------------------+
+    | persons          |
+    +------------------+
+    1 row in set (0.001 sec)
+
+    MariaDB [docker]> exit
+    Bye
+    ```
