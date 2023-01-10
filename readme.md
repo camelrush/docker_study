@@ -558,3 +558,141 @@
     MariaDB [docker]> exit
     Bye
     ```
+
+## docker-compose実践
+
+複数のコンテナを連携させる場合は、docker-composeを使用する。
+
+### docker-compose。yml
+
+#### 基本構文
+- 必ず最初に、version、servicesの記載が必要。
+  ```yaml
+  version: "3"  # ← バージョン名
+  services:
+    web:        # ← サービス名
+      build: ./php
+    db:         # ← サービス名
+      image: mariadb:10.4
+  ```
+
+#### buildとimage
+
+- コンテナ生成に使用するイメージを指定する。
+
+  - `build`には、Dcokerfileが置いてあるディレクトリのパスを指定する
+  - `image`には、DockerHubから指定する
+
+#### container_name
+- コンテナに任意の名前をつける（`docker run --name`と同じ）
+- ダブルクォーテーションで括ること。
+- 全てのコンテナに名前をつけることが推奨。
+  - 例）
+  ```yaml
+  version: "3"
+  services:
+    web:
+      image: php:8.0
+      container_name: "php8"    # ← ここ
+    db:
+      container_name: "db2"     # ← ここ
+  ```
+
+#### volumes
+- ホストのディスクを共有する場合に指定する。
+- 書式は、`ホスト名のパス:コンテナのパス`で指定する。
+- ホストのパスは、`相対パス`を記入することがお勧め(macやWindowsの影響を受けないように)
+
+#### ports
+- ポートフォワーディングを使用する場合に指定する。
+- 書式は、`外部公開ポート:コンテナ内部ポート`で指定する。
+
+#### environment
+- 環境変数を設定する。
+- 書式は、`環境変数名:値`で指定する。
+
+### docker-composeを使用したコンテナ関連携
+
+- 通信の連携では`サービス名`がIPアドレスに変換されて通信する。
+
+  - 演習）  
+    docker-compose.yml（[/assets/DockerCompose/sample-wordpress/docker-compose.yml](/assets/DockerCompose/sample-wordpress/docker-compose.yml)）
+    ```yml
+    version: "3"
+    services:
+        db:
+            image: mariadb:10.4
+            container_name: "wordpress-db"
+            volumes:
+                - ./db-data:/var/lib/mysql
+            environment:
+                MYSQL_ROOT_PASSWORD: root
+                MYSQL_DATABASE: wordpress
+                MYSQL_USER: wordpress
+                MYSQL_PASSWORD: wordpress
+            
+        wordpress:
+            image: wordpress:5
+            container_name: "wordpress-wp"
+            volumes:
+                - ./wp-data:/var/www/html
+            ports:
+                - "8000:80"
+            environment:
+                WORDPRESS_DB_HOST: db:3306 #db→内部IPに変換
+                WORDPRESS_DB_USER: wordpress
+                WORDPRESS_DB_PASSWORD: wordpress
+                WORDPRESS_DB_NAME: wordpress
+    ```
+
+    command
+    ```sh
+    docker-compose up -d
+    ```
+
+    ブラウザから、`http://localhost:8000`にアクセスするとWordPressのログインページが表示される。    
+
+    ![wordpress](/assets/img/docker-compose-wordpress.jpg)
+
+### docker-composeコマンド
+
+#### up & down
+- docker-compose.ymlで管理されたコンテナ群の操作。
+  - up : <u>コンテナ作成</u> & コンテナ起動
+  - down : コンテナ停止 & <u>コンテナ削除</u>
+- <u>コマンド実行時の、カンレトディレクトリにあるdocker-compose.ymlの範囲のみ適用されること</u>。カレントにない場合は、上の階層を探しに行くことに注意。
+
+#### restart
+- 設定内容(※)を再読み込みして、コンテナ群を再起動する。  
+  ※restartでは、docker-compose.ymlの変更内容は反映されない。  
+  　これを反映させたい場合は、`dokcer-compose up -d`で立ち上げし直すこと。
+
+#### ps
+- composeで使用しているコンテナ一覧が表示される。
+- docker-compose.ymlで定義された範囲のコンテナだけが表示される。   
+（`docker ps`よりもスッキリ見える）
+```sh
+(base) shinya.takada@ShinyaTadanoAir sample-wordpress % docker-compose ps   
+    Name                  Command               State          Ports        
+----------------------------------------------------------------------------
+wordpress-db   docker-entrypoint.sh mysqld      Up      3306/tcp            
+wordpress-wp   docker-entrypoint.sh apach ...   Up      0.0.0.0:8000->80/tcp
+```
+
+#### run
+- docker-compose.ymlで管理されているサービスを1つ指定してコマンドを実行する（`docker exec`に近い）
+
+- ビルド前にも実行可能であるため、フレームワークのインストールなどに使うと便利
+
+  - 例）-vで、wordpressサービス内にあるphpのバージョンを確認する。
+    ```sh
+    (base) shinya.takada@ShinyaTadanoAir sample-wordpress % docker-compose run wordpress php -v
+
+    Creating sample-wordpress_wordpress_run ... done
+    PHP 7.4.29 (cli) (built: May 11 2022 07:08:21) ( NTS )
+    Copyright (c) The PHP Group
+    Zend Engine v3.4.0, Copyright (c) Zend Technologies
+        with Zend OPcache v7.4.29, Copyright (c), by Zend Technologies
+    ```
+
+## Laravel環境の構築

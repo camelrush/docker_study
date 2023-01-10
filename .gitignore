@@ -1,0 +1,4 @@
+assets/DockerCompose/sample-laravel/data/
+assets/DockerCompose/sample-laravel/db/
+assets/DockerCompose/sample-workpress/db-data
+assets/DockerCompose/sample-workpress/wp-data
