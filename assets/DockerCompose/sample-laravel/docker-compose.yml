@@ -5,13 +5,20 @@ services:
     container_name: "laravel-db"
     volumes:
       - ./data:/var/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
     ports:
       - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: docker
+      MYSQL_PASSWORD: docker
+      TZ: 'Asia/Tokyo'
   php:
     build: ./php
     container_name: "laravel-php"
     volumes:
       - ./source:/var/www/html
+      - ./php/vhost.conf:/etc/apache2/conf-enabled/vhost.conf      
     ports:
       - "8080:80"
-  

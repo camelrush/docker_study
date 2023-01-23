@@ -696,3 +696,5 @@ wordpress-wp   docker-entrypoint.sh apach ...   Up      0.0.0.0:8000->80/tcp
     ```
 
 ## Laravel環境の構築
+
+docker-compose run php composer create-project --prefer-dist laravel/laravel .
